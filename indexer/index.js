@@ -9,7 +9,7 @@ const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS;
 const START_BLOCK = BigInt(process.env.START_BLOCK || 0);
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 12000);
 const MAX_EVENTS = Number(process.env.MAX_EVENTS || 1000);
-const MAX_LOG_RANGE = BigInt(process.env.MAX_LOG_RANGE || 30000);
+const MAX_LOG_RANGE = BigInt(Math.min(Number(process.env.MAX_LOG_RANGE || 20000), 30000));
 const PORT = Number(process.env.PORT || 8081);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
@@ -58,20 +58,39 @@ const withdrawEvent = parseAbiItem(
 
 const normalizeVault = (vault) => getAddress(vault);
 
+let maxLogRange = MAX_LOG_RANGE;
+
+const isLogRangeError = (err) => {
+  const message = `${err?.details || ""} ${err?.shortMessage || ""} ${err?.message || ""}`;
+  return err?.status === 413 || message.includes("max allowed range") || message.includes("ErrGetLogsExceededMaxAllowedRange");
+};
+
 const getLogsInChunks = async ({ address, event, fromBlock, toBlock }) => {
   if (fromBlock > toBlock) return [];
   const logs = [];
   let start = fromBlock;
+  let range = maxLogRange;
   while (start <= toBlock) {
-    const end = start + MAX_LOG_RANGE - 1n <= toBlock ? start + MAX_LOG_RANGE - 1n : toBlock;
-    const batch = await client.getLogs({
-      address,
-      event,
-      fromBlock: start,
-      toBlock: end,
-    });
-    if (batch.length) logs.push(...batch);
-    start = end + 1n;
+    const end = start + range - 1n <= toBlock ? start + range - 1n : toBlock;
+    try {
+      const batch = await client.getLogs({
+        address,
+        event,
+        fromBlock: start,
+        toBlock: end,
+      });
+      if (batch.length) logs.push(...batch);
+      start = end + 1n;
+      range = maxLogRange;
+    } catch (err) {
+      if (isLogRangeError(err) && range > 1n) {
+        const nextRange = range / 2n;
+        range = nextRange > 1n ? nextRange : 1n;
+        maxLogRange = range;
+        continue;
+      }
+      throw err;
+    }
   }
   return logs;
 };
