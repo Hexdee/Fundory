@@ -1,0 +1,12 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fundoryGradient" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F4D3D"/>
+      <stop offset="1" stop-color="#E7694A"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="36" height="36" rx="12" fill="url(#fundoryGradient)"/>
+  <rect x="13" y="10" width="6" height="20" rx="2" fill="#FDFCF9"/>
+  <rect x="19" y="10" width="10" height="6" rx="2" fill="#FDFCF9"/>
+  <rect x="19" y="18" width="8" height="6" rx="2" fill="#FDFCF9"/>
+</svg>
