@@ -9,6 +9,7 @@ const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS;
 const START_BLOCK = BigInt(process.env.START_BLOCK || 0);
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 12000);
 const MAX_EVENTS = Number(process.env.MAX_EVENTS || 1000);
+const MAX_LOG_RANGE = BigInt(process.env.MAX_LOG_RANGE || 30000);
 const PORT = Number(process.env.PORT || 8081);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
@@ -57,6 +58,24 @@ const withdrawEvent = parseAbiItem(
 
 const normalizeVault = (vault) => getAddress(vault);
 
+const getLogsInChunks = async ({ address, event, fromBlock, toBlock }) => {
+  if (fromBlock > toBlock) return [];
+  const logs = [];
+  let start = fromBlock;
+  while (start <= toBlock) {
+    const end = start + MAX_LOG_RANGE - 1n <= toBlock ? start + MAX_LOG_RANGE - 1n : toBlock;
+    const batch = await client.getLogs({
+      address,
+      event,
+      fromBlock: start,
+      toBlock: end,
+    });
+    if (batch.length) logs.push(...batch);
+    start = end + 1n;
+  }
+  return logs;
+};
+
 const indexOnce = async () => {
   const latestBlock = await client.getBlockNumber();
   const lastBlock = state.lastBlock ? BigInt(state.lastBlock) : 0n;
@@ -64,7 +83,7 @@ const indexOnce = async () => {
 
   if (fromBlock > latestBlock) return;
 
-  const goalLogs = await client.getLogs({
+  const goalLogs = await getLogsInChunks({
     address: factoryAddress,
     event: goalCreatedEvent,
     fromBlock,
@@ -89,13 +108,13 @@ const indexOnce = async () => {
 
     for (const vault of vaultAddresses) {
       const [depositLogs, withdrawLogs] = await Promise.all([
-        client.getLogs({
+        getLogsInChunks({
           address: vault,
           event: depositEvent,
           fromBlock,
           toBlock: latestBlock,
         }),
-        client.getLogs({
+        getLogsInChunks({
           address: vault,
           event: withdrawEvent,
           fromBlock,
