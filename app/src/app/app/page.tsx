@@ -258,8 +258,10 @@ export default function AppPage() {
 
   const allowanceValue = allowance ?? 0n;
   const balanceValue = balance ?? 0n;
+  const hasDepositAmount = parsedDepositAmount !== null && parsedDepositAmount > 0n;
   const canDeposit =
-    Boolean(depositVault && address && parsedDepositAmount && parsedDepositAmount > 0n) &&
+    Boolean(depositVault && address && hasDepositAmount) &&
+    parsedDepositAmount !== null &&
     parsedDepositAmount <= allowanceValue &&
     parsedDepositAmount <= balanceValue;
 
@@ -268,8 +270,10 @@ export default function AppPage() {
     return (userShares * totalAssets) / totalShares;
   }, [totalAssets, totalShares, userShares]);
   const maxWithdrawFormatted = formatAmount(maxWithdraw, appConfig.usdcDecimals);
+  const hasWithdrawAmount = parsedWithdrawAmount !== null && parsedWithdrawAmount > 0n;
   const canWithdraw =
-    Boolean(activeVault && address && parsedWithdrawAmount && parsedWithdrawAmount > 0n) &&
+    Boolean(activeVault && address && hasWithdrawAmount) &&
+    parsedWithdrawAmount !== null &&
     parsedWithdrawAmount <= maxWithdraw;
 
   const userValue = useMemo(() => {

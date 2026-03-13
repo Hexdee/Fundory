@@ -6,7 +6,6 @@ import { appConfig } from "./config";
 const mantleChain: Chain = {
   id: appConfig.chainId,
   name: appConfig.chainName,
-  network: "mantle",
   nativeCurrency: { name: "MNT", symbol: "MNT", decimals: 18 },
   rpcUrls: {
     default: { http: [appConfig.rpcUrl] },
@@ -17,21 +16,22 @@ const mantleChain: Chain = {
   },
 };
 
-const connectors = [injected({ shimDisconnect: true })];
-
-if (appConfig.walletConnectProjectId) {
-  connectors.push(
-    walletConnect({
-      projectId: appConfig.walletConnectProjectId,
-      metadata: {
-        name: "Fundory",
-        description: "Goal-based savings vaults with on-chain yield strategies.",
-        url: "http://localhost:3000",
-        icons: ["https://avatars.githubusercontent.com/u/37784886"],
-      },
-    })
-  );
-}
+const connectors = [
+  injected({ shimDisconnect: true }),
+  ...(appConfig.walletConnectProjectId
+    ? [
+        walletConnect({
+          projectId: appConfig.walletConnectProjectId,
+          metadata: {
+            name: "Fundory",
+            description: "Goal-based savings vaults with on-chain yield strategies.",
+            url: "http://localhost:3000",
+            icons: ["https://avatars.githubusercontent.com/u/37784886"],
+          },
+        }),
+      ]
+    : []),
+];
 
 export const config = createConfig({
   chains: [mantleChain],
