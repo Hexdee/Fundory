@@ -3,10 +3,10 @@ import { injected, walletConnect } from "wagmi/connectors";
 import type { Chain } from "viem";
 import { appConfig } from "./config";
 
-const mantleChain: Chain = {
+const appChain: Chain = {
   id: appConfig.chainId,
   name: appConfig.chainName,
-  nativeCurrency: { name: "MNT", symbol: "MNT", decimals: 18 },
+  nativeCurrency: appConfig.nativeCurrency,
   rpcUrls: {
     default: { http: [appConfig.rpcUrl] },
     public: { http: [appConfig.rpcUrl] },
@@ -24,7 +24,7 @@ const connectors = [
           projectId: appConfig.walletConnectProjectId,
           metadata: {
             name: "Fundory",
-            description: "Goal-based savings vaults with on-chain yield strategies.",
+            description: "Goal-based savings with Bonzo vault interactions on Hedera.",
             url: "http://localhost:3000",
             icons: ["https://avatars.githubusercontent.com/u/37784886"],
           },
@@ -34,9 +34,9 @@ const connectors = [
 ];
 
 export const config = createConfig({
-  chains: [mantleChain],
+  chains: [appChain],
   connectors,
   transports: {
-    [mantleChain.id]: http(appConfig.rpcUrl),
+    [appChain.id]: http(appConfig.rpcUrl),
   },
 });

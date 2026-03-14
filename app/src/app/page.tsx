@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LandingPage() {
@@ -5,7 +6,7 @@ export default function LandingPage() {
     <div className="page">
       <nav className="nav reveal">
         <div className="logo">
-          <img className="logo-badge" src="/fundory-logo.svg" alt="Fundory logo" />
+          <Image className="logo-badge" src="/fundory-logo.svg" alt="Fundory logo" width={28} height={28} />
           Fundory
         </div>
         <div className="nav-links">

@@ -1,12 +1,26 @@
 {
-  "name": "mantle-goal-vault-contracts",
+  "name": "fundory-contracts",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "compile": "hardhat compile",
-    "deploy:sepolia": "hardhat run scripts/deploy.js --network mantleSepolia",
-    "deploy:testnet": "hardhat run scripts/deploy.js --network mantleTestnet",
-    "deploy:mainnet": "hardhat run scripts/deploy.js --network mantle"
+    "smoke:local": "hardhat run scripts/e2eLocalSmoke.js --network localhost",
+    "deploy:strategies:hedera:testnet": "hardhat run scripts/deployStrategies.js --network hederaTestnet",
+    "deploy:strategies:hedera:mainnet": "hardhat run scripts/deployStrategies.js --network hedera",
+    "proof:flow:hedera:testnet": "hardhat run scripts/fullProofFlow.js --network hederaTestnet",
+    "proof:flow:hedera:mainnet": "hardhat run scripts/fullProofFlow.js --network hedera",
+    "proof:hedera:testnet": "hardhat run scripts/generateOnchainProof.js --network hederaTestnet",
+    "proof:hedera:mainnet": "hardhat run scripts/generateOnchainProof.js --network hedera",
+    "deploy:hedera": "hardhat run scripts/deploy.js --network hedera",
+    "deploy:hedera:testnet": "hardhat run scripts/deploy.js --network hederaTestnet",
+    "deploy:prizepool:hedera": "hardhat run scripts/deployPrizePool.js --network hedera",
+    "deploy:prizepool:hedera:testnet": "hardhat run scripts/deployPrizePool.js --network hederaTestnet",
+    "deploy:prizepool:sepolia": "hardhat run scripts/deployPrizePool.js --network evmSepolia",
+    "deploy:prizepool:testnet": "hardhat run scripts/deployPrizePool.js --network evmTestnet",
+    "deploy:prizepool:mainnet": "hardhat run scripts/deployPrizePool.js --network evmMainnet",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network evmSepolia",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network evmTestnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network evmMainnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.6",

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fundory Pitch Deck</title>
+    <style>
+      :root {
+        --bg: #f7f4ed;
+        --ink: #10211d;
+        --muted: #4f615a;
+        --accent: #0f4d3d;
+        --accent2: #e7694a;
+      }
+      body {
+        margin: 0;
+        font-family: "Inter", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+      .slide {
+        width: 100%;
+        min-height: 100vh;
+        box-sizing: border-box;
+        padding: 64px;
+        display: grid;
+        gap: 20px;
+        page-break-after: always;
+        background: linear-gradient(135deg, #fff, #f3f8f6);
+      }
+      .kicker {
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+      }
+      h1, h2 {
+        margin: 0;
+        line-height: 1.15;
+      }
+      h1 { font-size: 56px; }
+      h2 { font-size: 38px; }
+      p, li { font-size: 22px; line-height: 1.45; color: var(--muted); }
+      ul { margin: 0; padding-left: 24px; display: grid; gap: 12px; }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .card {
+        border: 1px solid #dce6e1;
+        border-radius: 16px;
+        padding: 20px;
+        background: #fff;
+      }
+      .metric {
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .footer {
+        margin-top: auto;
+        color: #6b7d76;
+        font-size: 16px;
+      }
+      .accent { color: var(--accent2); font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <section class="slide">
+      <div class="kicker">Hedera Hello Future Apex 2026</div>
+      <h1>Fundory</h1>
+      <p>Goal-based savings vaults with autonomous yield execution on Hedera.</p>
+      <div class="grid2">
+        <div class="card"><div class="metric">3</div><p>On-chain goal modes</p></div>
+        <div class="card"><div class="metric">1</div><p>Unified app for goals, automation, and controls</p></div>
+      </div>
+      <div class="footer">Team: Saheed Lukman</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Problem</div>
+      <h2>Savings users lack control and transparency</h2>
+      <ul>
+        <li>Most savings apps hide yield logic and rebalancing decisions.</li>
+        <li>Users cannot choose per-goal risk and automation behavior.</li>
+        <li>Autonomous execution is usually opaque or centralized.</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Solution</div>
+      <h2>On-chain goal vaults + agentic strategy engine</h2>
+      <ul>
+        <li>Each goal creates a dedicated vault contract on Hedera.</li>
+        <li>Goal mode is persisted on-chain: Max Yield, Prized Yield, Select a Strategy.</li>
+        <li>Agent consumes external signals and strategy data to decide/execute rotations.</li>
+        <li>Manual and semi-autonomous controls are exposed in-app.</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Architecture</div>
+      <h2>Contracts + App + Indexer/Agent</h2>
+      <div class="grid2">
+        <div class="card">
+          <p><strong>Contracts</strong><br/>GoalVaultFactory, GoalVault, PrizeSavingsPool, strategies.</p>
+        </div>
+        <div class="card">
+          <p><strong>Frontend</strong><br/>Next.js + Wagmi/Viem pages: Overview, Goals, Automation, Settings.</p>
+        </div>
+        <div class="card">
+          <p><strong>Indexer</strong><br/>Tracks GoalCreated/Deposited/Withdrawn and serves activity API.</p>
+        </div>
+        <div class="card">
+          <p><strong>Agent</strong><br/>Decision API + execute API with optional Hedera Agent Kit path.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Bonzo + HAK</div>
+      <h2>Bounty alignment</h2>
+      <ul>
+        <li>Bonzo-compatible strategy routes are represented and selectable in app/agent.</li>
+        <li>Hedera Agent Kit execution path is supported with <code>AGENT_EXECUTOR=hak</code>.</li>
+        <li>Manual trigger + autonomous cycle endpoint provide reproducible judge demos.</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Demo Walkthrough</div>
+      <h2>End-to-end user flow</h2>
+      <ol style="font-size:22px; color:#4f615a; display:grid; gap:12px; margin:0; padding-left:24px;">
+        <li>Create goal and choose mode.</li>
+        <li>Approve and deposit into vault.</li>
+        <li>Open Automation page and run agent cycle.</li>
+        <li>Verify activity and transaction evidence.</li>
+      </ol>
+      <p class="accent">Demo video: <span>https://vimeo.com/1133217800/e4b5a5ce52?share=copy&amp;fl=sv&amp;fe=ci</span></p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Tech Stack</div>
+      <h2>Implementation stack</h2>
+      <ul>
+        <li>Solidity + Hardhat</li>
+        <li>Next.js + TypeScript + Wagmi + Viem</li>
+        <li>Express indexer/agent service</li>
+        <li>Hedera JSON-RPC + HashScan</li>
+        <li>Hedera Agent Kit + Bonzo plugin integration</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Traction & Validation</div>
+      <h2>What is already verified</h2>
+      <ul>
+        <li>Contract compile/build checks passing.</li>
+        <li>On-chain mode persisted and read in app.</li>
+        <li>Local end-to-end smoke: deploy → create goal (mode) → deposit → indexed activity.</li>
+      </ul>
+      <p>Smoke script: <code>contracts/scripts/e2eLocalSmoke.js</code></p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Roadmap</div>
+      <h2>Next milestones</h2>
+      <ul>
+        <li>Production strategy adapters for live Hedera pools.</li>
+        <li>Risk policy tuning and per-goal automation constraints.</li>
+        <li>Expanded prize savings mechanics and reporting.</li>
+        <li>Advanced analytics and multi-goal portfolio optimization.</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Ask</div>
+      <h2>Why Fundory should win</h2>
+      <ul>
+        <li>Clear real-world user value: transparent autonomous savings.</li>
+        <li>Strong technical alignment with Hedera + Bonzo + Agent tooling.</li>
+        <li>Practical architecture with auditable on-chain state and actions.</li>
+      </ul>
+      <p>Repo: <span class="accent">https://github.com/hexdee/fundory</span></p>
+      <p>Live demo: <span class="accent">https://fundory.vercel.app</span></p>
+    </section>
+  </body>
+</html>

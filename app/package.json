@@ -1,12 +1,15 @@
 {
-  "name": "mantle-goal-vault-app",
+  "name": "fundory-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "demo:record": "node scripts/record-demo.mjs",
+    "demo:responsive": "node scripts/check-responsive.mjs",
+    "deck:pdf": "node scripts/generate-pitch-pdf.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.0",
@@ -22,6 +25,7 @@
     "@types/react-dom": "18.3.0",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.5",
+    "playwright": "^1.58.2",
     "typescript": "5.5.4"
   }
 }

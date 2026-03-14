@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-03-24T04:38:56.626Z",
+  "network": "hederaTestnet",
+  "chainId": 296,
+  "account": {
+    "evmAddress": "0x1b829a971FA388367A7cb1105EA2F0168565c684",
+    "hederaAccountId": "0.0.6520558"
+  },
+  "contracts": {
+    "usdc": {
+      "label": "MockUSDC",
+      "address": "0x80dE33bA333A596cbc9F300B9bE2ca8dF7676B28",
+      "txHash": "0x33277a2c30670d0d1075493ad73712f3fbcd7f244c3a1065782e0b2fc8bf790c",
+      "blockNumber": 33139701
+    },
+    "strategyStable": {
+      "label": "MockYieldStrategyStable",
+      "address": "0x76B0D9500be68c0BB8aE45D72F0127F26353B282",
+      "txHash": "0x1347b01a7a0e10eeca6b692503693f70641b9986d3b83bf86c1784427ab1a5bc",
+      "blockNumber": 33139706
+    },
+    "strategyGrowth": {
+      "label": "MockYieldStrategyGrowth",
+      "address": "0xE861e2b6E0f89a1BD6CE6cE7D83148B2315333c2",
+      "txHash": "0xec64df26fb7b1d3616dc0a2bee55a7974f1e0d83168ce3fc28b5dbc0eaab496a",
+      "blockNumber": 33139711
+    },
+    "factory": {
+      "label": "GoalVaultFactory",
+      "address": "0x01f07e360C8aCd03EB46C518b25A33dAe75a5709",
+      "txHash": "0x953b3803a1a1447e7cd863a09a578deaa3fd74ba47e2e00b76b3d6226fa40ee8",
+      "blockNumber": 33139716
+    },
+    "selectedStrategy": "0x76B0D9500be68c0BB8aE45D72F0127F26353B282"
+  },
+  "goal": {
+    "id": "1",
+    "name": "Fundory Submission Proof Goal",
+    "mode": 1,
+    "vault": "0x12b48e330252CE23E45Df87902322CeBd8300DBc",
+    "targetAmount": "1000000000",
+    "totalAssets": "250000002"
+  },
+  "transactions": {
+    "createGoal": {
+      "hash": "0x45a3945718c66c780f16132773f1d3a9cc07ce60812591f45a39027fa5366b9a",
+      "blockNumber": 33139720,
+      "explorer": "https://hashscan.io/testnet/transaction/0x45a3945718c66c780f16132773f1d3a9cc07ce60812591f45a39027fa5366b9a"
+    },
+    "mint": {
+      "hash": "0x588701f6bed1a19831a98d607364616bede88f83bc9a60998c19cc8b3f406d42",
+      "explorer": "https://hashscan.io/testnet/transaction/0x588701f6bed1a19831a98d607364616bede88f83bc9a60998c19cc8b3f406d42"
+    },
+    "approve": {
+      "hash": "0xff6cb1ce8a66cef5e69309f7268cf8ff487eeb70b56e1978ce655528daad7154",
+      "explorer": "https://hashscan.io/testnet/transaction/0xff6cb1ce8a66cef5e69309f7268cf8ff487eeb70b56e1978ce655528daad7154"
+    },
+    "deposit": {
+      "hash": "0xc62fe07bd8e626703cf37c9d2b1a3796a8f98450b81cf5352ce1cda81d3a0319",
+      "blockNumber": 33139735,
+      "explorer": "https://hashscan.io/testnet/transaction/0xc62fe07bd8e626703cf37c9d2b1a3796a8f98450b81cf5352ce1cda81d3a0319"
+    }
+  }
+}
