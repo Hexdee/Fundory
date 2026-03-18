@@ -880,15 +880,6 @@ main {
   margin-top: 10px;
 }
 
-.automation-grid > .card {
-  grid-column: span 6;
-}
-
-.automation-grid > .status {
-  grid-column: span 12;
-  margin-top: 2px;
-}
-
 .settings-grid > .card {
   grid-column: span 6;
 }
@@ -970,16 +961,16 @@ main {
 
 .goals-list-card,
 .goal-withdraw-card {
-  min-height: 700px;
+  min-height: 0;
 }
 
 .goals-list-card .goals-list {
-  max-height: 620px;
+  max-height: 460px;
 }
 
 .goals-list-card .empty-state,
 .goal-withdraw-card .empty-state {
-  min-height: 300px;
+  min-height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1075,7 +1066,6 @@ main {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .grid > .card,
-  .automation-grid > .card,
   .settings-grid > .card {
     grid-column: span 12;
   }

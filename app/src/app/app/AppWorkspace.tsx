@@ -156,7 +156,7 @@ const getStrategyRiskLabel = (aprBps?: number) => {
   return "Medium-High";
 };
 
-export type WorkspaceRouteView = "dashboard" | "goals" | "automation" | "settings";
+export type WorkspaceRouteView = "dashboard" | "goals" | "settings";
 
 type AppWorkspaceProps = {
   initialView?: WorkspaceRouteView;
@@ -880,7 +880,7 @@ export default function AppWorkspace({ initialView = "dashboard" }: AppWorkspace
   };
 
   useEffect(() => {
-    if (activeView !== "automation" && activeView !== "dashboard") return;
+    if (activeView !== "dashboard") return;
     fetchAgentData().catch((err) => console.error(err));
   }, [activeView, fetchAgentData]);
 
@@ -897,18 +897,14 @@ export default function AppWorkspace({ initialView = "dashboard" }: AppWorkspace
       ? "Portfolio Overview"
       : activeView === "goals"
         ? "Goals Command Center"
-        : activeView === "automation"
-          ? "Automation Orchestrator"
-          : "Settings";
+        : "Settings";
 
   const viewSubtitle =
     activeView === "dashboard"
       ? "Your goals, yield allocation, and latest protocol activity at a glance."
       : activeView === "goals"
         ? "Manage every goal end-to-end: progress, mode, strategy, and money actions in one place."
-        : activeView === "automation"
-          ? "Simple control for automated goal actions and recent activity."
-          : "Manage wallet, safety defaults, notifications, and data permissions.";
+        : "Manage wallet, safety defaults, notifications, and data permissions.";
 
   const draftModeStrategyAddress = resolveStrategyForMode(goalModeDraft);
   const draftModeStrategyLabel = getStrategyLabel(draftModeStrategyAddress);
@@ -946,7 +942,6 @@ export default function AppWorkspace({ initialView = "dashboard" }: AppWorkspace
           {[
             { id: "dashboard", label: "Overview", href: "/app" },
             { id: "goals", label: "Goals", href: "/app/goals" },
-            { id: "automation", label: "Automation", href: "/app/automation" },
             { id: "settings", label: "Settings", href: "/app/settings" },
           ].map((item) => (
             <Link
@@ -1399,178 +1394,6 @@ export default function AppWorkspace({ initialView = "dashboard" }: AppWorkspace
                 </>
               )}
             </div>
-          </section>
-        ) : null}
-
-        {activeView === "automation" ? (
-          <section className="grid automation-grid">
-            <div className="card">
-              <div className="card-header">
-                <h3>Status & Controls</h3>
-                <button className="btn btn-secondary btn-small" type="button" onClick={() => fetchAgentData()}>
-                  Refresh
-                </button>
-              </div>
-              {!appConfig.agentUrl ? (
-                <div className="empty-state">Configure NEXT_PUBLIC_AGENT_URL to enable automation controls.</div>
-              ) : isAgentLoading ? (
-                <div className="empty-state">Loading automation status...</div>
-              ) : (
-                <div className="detail-grid">
-                  <div className="detail-row">
-                    <span>Executor</span>
-                    <span>{agentStatusData?.executor || appConfig.agentExecutor || "-"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Automation mode</span>
-                    <span>{agentStatusData?.autoExecute ? "Auto + Approval" : "Manual Trigger"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Service health</span>
-                    <span>{agentStatusData?.enabled === false ? "Disabled" : "Healthy"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Wallet configured</span>
-                    <span>{agentStatusData?.walletConfigured ? "Yes" : "No"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Last cycle</span>
-                    <span>{formatIsoDate(agentStatusData?.lastExecution?.executedAt || agentStatusData?.lastRunAt)}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Cycle interval</span>
-                    <span>{agentStatusData?.intervalMs ? `${Math.round(agentStatusData.intervalMs / 60000)} min` : "-"}</span>
-                  </div>
-                </div>
-              )}
-              <div className="mode-actions">
-                <button className="btn btn-primary btn-small" type="button" onClick={handleRunAgent}>
-                  Run now
-                </button>
-                <button className="btn btn-secondary btn-small" type="button" onClick={() => fetchAgentData()}>
-                  Refresh data
-                </button>
-              </div>
-            </div>
-
-            <div className="card">
-              <h3>Signal Snapshot</h3>
-              {!appConfig.agentUrl ? (
-                <div className="empty-state">Agent endpoint unavailable.</div>
-              ) : isAgentLoading ? (
-                <div className="empty-state">Loading signal snapshot...</div>
-              ) : !agentDecisionData ? (
-                <div className="empty-state">No signal data yet.</div>
-              ) : (
-                <div className="detail-grid">
-                  <div className="detail-row">
-                    <span>Fear & Greed</span>
-                    <span>
-                      {typeof agentDecisionData.signals?.fearGreed === "number"
-                        ? `${agentDecisionData.signals.fearGreed} (${agentDecisionData.signals.fearGreedLabel || "-"})`
-                        : "-"}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span>HBAR 24h change</span>
-                    <span>
-                      {typeof agentDecisionData.signals?.hbarChange24hPct === "number"
-                        ? `${agentDecisionData.signals.hbarChange24hPct.toFixed(2)}%`
-                        : "-"}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span>HBAR volatility</span>
-                    <span>
-                      {typeof agentDecisionData.signals?.hbarVolatility24hPct === "number"
-                        ? `${agentDecisionData.signals.hbarVolatility24hPct.toFixed(2)}%`
-                        : "-"}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Action</span>
-                    <span>{agentDecisionData.action || "-"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Selected strategy</span>
-                    <span>{agentDecisionData.selectedStrategy?.name || "-"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Target risk</span>
-                    <span>{agentDecisionData.targetRisk || "-"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span>Reason</span>
-                    <span>{agentDecisionData.reason || "-"}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="card">
-              <h3>Recent Runs</h3>
-              {!appConfig.agentUrl ? (
-                <div className="empty-state">No run history while agent endpoint is disabled.</div>
-              ) : isAgentLoading ? (
-                <div className="empty-state">Loading run history...</div>
-              ) : (agentStatusData?.history || []).length === 0 ? (
-                <div className="empty-state">No runs recorded yet.</div>
-              ) : (
-                <div className="activity">
-                  {(agentStatusData?.history || []).slice(0, 6).map((item, index) => (
-                    <div className="activity-item" key={`${item.at || "run"}-${index}`}>
-                      <div style={{ fontWeight: 600 }}>
-                        {item.executed ? "Executed" : "No execution"} • {item.action || "cycle"}
-                      </div>
-                      <div style={{ color: "var(--muted)", marginTop: 4 }}>
-                        {formatIsoDate(item.at)}
-                        {item.executor ? ` • ${item.executor}` : ""}
-                        {item.reason ? ` • ${item.reason}` : ""}
-                        {item.error ? ` • ${item.error}` : ""}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="card">
-              <h3>Quick Protocol Actions</h3>
-              <div className="detail-grid">
-                <div className="detail-row">
-                  <span>Goal factory</span>
-                  <span>{shortAddress(factoryAddress)}</span>
-                </div>
-                <div className="detail-row">
-                  <span>Prize pool</span>
-                  <span>{shortAddress(appConfig.prizePoolAddress)}</span>
-                </div>
-                <div className="detail-row">
-                  <span>Agent endpoint</span>
-                  <span className="detail-mono">{appConfig.agentUrl || "Not configured"}</span>
-                </div>
-              </div>
-              <div className="mode-actions">
-                <Link className="btn btn-secondary btn-small" href="/app/goals">
-                  Open goals
-                </Link>
-                <button className="btn btn-primary btn-small" type="button" onClick={handleRunAgent}>
-                  Trigger rebalance
-                </button>
-                {factoryExplorerUrl ? (
-                  <a className="btn btn-secondary btn-small" href={factoryExplorerUrl} target="_blank" rel="noreferrer">
-                    View factory
-                  </a>
-                ) : null}
-                {prizePoolExplorerUrl ? (
-                  <a className="btn btn-secondary btn-small" href={prizePoolExplorerUrl} target="_blank" rel="noreferrer">
-                    View prize pool
-                  </a>
-                ) : null}
-              </div>
-            </div>
-
-            {agentUiStatus.message ? <div className="status">{agentUiStatus.message}</div> : null}
           </section>
         ) : null}
 
