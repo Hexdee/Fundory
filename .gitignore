@@ -1,0 +1,13 @@
+# Excluded from repository publish
+submission/
+design-prototype/
+
+# Demo artifacts / media tooling
+app/demo-artifacts/
+app/scripts/
+
+# Proof / e2e / local smoke scripts
+contracts/scripts/e2e*.js
+contracts/scripts/fullProofFlow.js
+contracts/scripts/generateOnchainProof.js
+indexer/scripts/

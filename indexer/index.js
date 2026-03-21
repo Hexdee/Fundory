@@ -4,6 +4,7 @@ const express = require("express");
 const {
   createPublicClient,
   createWalletClient,
+  fallback,
   http,
   parseAbi,
   parseAbiItem,
@@ -13,7 +14,30 @@ const {
 const { privateKeyToAccount } = require("viem/accounts");
 require("dotenv").config();
 
-const RPC_URL = process.env.RPC_URL;
+const AGENT_CHAIN_ID = Number(process.env.AGENT_CHAIN_ID || 295);
+const parseRpcUrls = () => {
+  const single = (process.env.RPC_URL || "").trim();
+  const multi = (process.env.RPC_URLS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const defaults =
+    AGENT_CHAIN_ID === 296
+      ? [
+          "https://testnet.hashio.io/api",
+          "https://hedera-testnet.rpc.thirdweb.com",
+        ]
+      : [
+          "https://mainnet.hashio.io/api",
+          "https://hedera.rpc.thirdweb.com",
+        ];
+
+  const merged = [...multi, single, ...defaults].filter(Boolean);
+  return [...new Set(merged)];
+};
+const RPC_URLS = parseRpcUrls();
+const RPC_URL = RPC_URLS[0] || "";
 const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS || "";
 const START_BLOCK = BigInt(process.env.START_BLOCK || 0);
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 12000);
@@ -25,7 +49,6 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const AGENT_ENABLED = process.env.AGENT_ENABLED !== "false";
 const AGENT_AUTO_EXECUTE = process.env.AGENT_AUTO_EXECUTE === "true";
 const AGENT_INTERVAL_MS = Number(process.env.AGENT_INTERVAL_MS || 300000);
-const AGENT_CHAIN_ID = Number(process.env.AGENT_CHAIN_ID || 295);
 const AGENT_PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY || process.env.PRIVATE_KEY || "";
 const AGENT_DEPOSIT_AMOUNT = process.env.AGENT_DEPOSIT_AMOUNT || "10";
 const AGENT_MIN_REBALANCE_MS = Number(process.env.AGENT_MIN_REBALANCE_MS || 21600000);
@@ -116,8 +139,8 @@ try {
   hakInitError = err;
 }
 
-if (!RPC_URL) {
-  throw new Error("Missing RPC_URL");
+if (RPC_URLS.length === 0) {
+  throw new Error("Missing RPC_URL/RPC_URLS");
 }
 
 const statePath = path.join(__dirname, "state.json");
@@ -170,17 +193,25 @@ const saveState = (state) => {
 
 const state = loadState();
 
-const client = createPublicClient({ transport: http(RPC_URL) });
+const rpcTransport =
+  RPC_URLS.length === 1
+    ? http(RPC_URLS[0], { timeout: 15_000, retryCount: 2 })
+    : fallback(
+        RPC_URLS.map((url) => http(url, { timeout: 15_000, retryCount: 2 }))
+      );
+
+const client = createPublicClient({ transport: rpcTransport });
 const factoryAddress = FACTORY_ADDRESS ? getAddress(FACTORY_ADDRESS) : null;
 const depositGuardAddress = AGENT_DEPOSIT_GUARD_ADDRESS ? getAddress(AGENT_DEPOSIT_GUARD_ADDRESS) : null;
 const vaultDeployerAddress = AGENT_VAULT_DEPLOYER_ADDRESS ? getAddress(AGENT_VAULT_DEPLOYER_ADDRESS) : null;
 const wrapperAddress = HEDERA_ERC20_WRAPPER_ADDRESS ? getAddress(HEDERA_ERC20_WRAPPER_ADDRESS) : null;
+let canResolveWrapperCounterpart = Boolean(wrapperAddress);
 
 const hederaChain = {
   id: AGENT_CHAIN_ID,
   name: AGENT_CHAIN_ID === 296 ? "Hedera Testnet" : "Hedera Mainnet",
   nativeCurrency: { name: "HBAR", symbol: "HBAR", decimals: 18 },
-  rpcUrls: { default: { http: [RPC_URL] } },
+  rpcUrls: { default: { http: RPC_URLS } },
 };
 
 const agentAccount = AGENT_PRIVATE_KEY
@@ -191,7 +222,7 @@ const walletClient = agentAccount
   ? createWalletClient({
       account: agentAccount,
       chain: hederaChain,
-      transport: http(RPC_URL),
+      transport: rpcTransport,
     })
   : null;
 
@@ -381,10 +412,28 @@ const normalizeAddressLower = (value) => {
   }
 };
 
+const resolveChainIdForMeta = async () => {
+  const configured = Number(AGENT_CHAIN_ID);
+  try {
+    const live = Number(await client.getChainId());
+    if (Number.isFinite(live) && live > 0) return live;
+  } catch (err) {
+    const reason = err?.shortMessage || err?.details || err?.message || String(err);
+    if (Number.isFinite(configured) && configured > 0) {
+      console.warn(`RPC chainId probe failed, using AGENT_CHAIN_ID=${configured}. Reason: ${reason}`);
+      return configured;
+    }
+    throw err;
+  }
+
+  if (Number.isFinite(configured) && configured > 0) return configured;
+  throw new Error("Unable to resolve chain id from RPC or AGENT_CHAIN_ID");
+};
+
 const initializeStateMeta = async () => {
-  const chainId = await client.getChainId();
+  const chainId = await resolveChainIdForMeta();
   const currentMeta = {
-    rpcUrl: RPC_URL,
+    rpcUrl: RPC_URLS.join(","),
     factoryAddress: normalizeAddressLower(factoryAddress),
     chainId: String(chainId),
   };
@@ -690,7 +739,7 @@ const selectStrategy = ({ signals, strategies, previousStrategyId }) => {
 
 const resolveActualDepositToken = async (tokenAddress) => {
   const token = getAddress(tokenAddress);
-  if (!wrapperAddress) return token;
+  if (!wrapperAddress || !canResolveWrapperCounterpart) return token;
   try {
     const counterpart = await client.readContract({
       address: wrapperAddress,
@@ -702,7 +751,9 @@ const resolveActualDepositToken = async (tokenAddress) => {
       return getAddress(counterpart);
     }
   } catch (err) {
-    console.error("Failed to resolve ERC20 counterpart", err?.message || err);
+    canResolveWrapperCounterpart = false;
+    const reason = err?.shortMessage || err?.details || err?.message || String(err);
+    console.warn(`Wrapper counterpart lookup disabled: ${reason}`);
   }
   return token;
 };
@@ -1244,11 +1295,13 @@ app.post("/agent/execute", async (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  const healthy = Boolean(RPC_URL);
+  const healthy = RPC_URLS.length > 0;
   res.status(healthy ? 200 : 503).json({
     ok: healthy,
     uptimeSeconds: Math.floor(process.uptime()),
-    rpcConfigured: Boolean(RPC_URL),
+    rpcConfigured: RPC_URLS.length > 0,
+    rpcPrimary: RPC_URLS[0] || null,
+    rpcFallbacks: RPC_URLS.slice(1),
     factoryConfigured: Boolean(factoryAddress),
     agentEnabled: AGENT_ENABLED,
   });
@@ -1260,6 +1313,7 @@ app.listen(PORT, () => {
     .then(() => startPolling())
     .catch((err) => {
       console.error("Failed to initialize state metadata", err);
-      process.exit(1);
+      console.warn("Continuing startup with degraded metadata initialization.");
+      startPolling();
     });
 });

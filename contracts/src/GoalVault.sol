@@ -4,6 +4,11 @@ pragma solidity ^0.8.20;
 import {IERC20} from "./interfaces/IERC20.sol";
 import {IYieldStrategy} from "./interfaces/IYieldStrategy.sol";
 
+interface IHRC {
+    function associate() external returns (int64 responseCode);
+    function isAssociated() external view returns (bool);
+}
+
 contract GoalVault {
     IERC20 public immutable asset;
     IYieldStrategy public immutable strategy;
@@ -16,9 +21,14 @@ contract GoalVault {
     mapping(address => uint256) public shares;
 
     bool private locked;
+    bool private assetAssociationChecked;
+
+    int64 private constant HEDERA_SUCCESS = 22;
+    int64 private constant HEDERA_TOKEN_ALREADY_ASSOCIATED = 194;
 
     event Deposited(address indexed from, address indexed beneficiary, uint256 amount, uint256 sharesMinted);
     event Withdrawn(address indexed to, uint256 amount, uint256 sharesBurned);
+    event VaultPrepared(address indexed owner);
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner");
         _;
@@ -52,7 +62,6 @@ contract GoalVault {
         goalName = name_;
         targetAmount = targetAmount_;
         require(address(strategy.asset()) == asset_, "strategy asset");
-        require(asset.approve(strategy_, type(uint256).max), "approve fail");
     }
 
     function deposit(uint256 amount) external onlyOwner nonReentrant returns (uint256 mintedShares) {
@@ -77,6 +86,13 @@ contract GoalVault {
         emit Withdrawn(msg.sender, amount, burnedShares);
     }
 
+    /// @notice One-time setup for Hedera token flows:
+    /// associates vault with asset token and sets strategy allowance.
+    function prepareVault() external onlyOwner {
+        _ensureAssetAssociation();
+        emit VaultPrepared(msg.sender);
+    }
+
     function totalAssets() external view returns (uint256) {
         return _totalAssets();
     }
@@ -98,11 +114,16 @@ contract GoalVault {
     function _deposit(address from, address beneficiary, uint256 amount) internal returns (uint256 mintedShares) {
         require(amount > 0, "amount=0");
 
+        _ensureAssetAssociation();
+        uint256 balanceBeforePull = asset.balanceOf(address(this));
         uint256 assets = _totalAssets();
         mintedShares = _previewDeposit(amount, assets);
         require(mintedShares > 0, "zero shares");
 
-        require(asset.transferFrom(from, address(this), amount), "transferFrom fail");
+        if (balanceBeforePull < amount) {
+            bool pulled = _safeTransferFrom(from, address(this), amount);
+            require(pulled, "transferFrom fail");
+        }
         _deployToStrategy(amount);
         shares[beneficiary] += mintedShares;
         totalShares += mintedShares;
@@ -133,6 +154,7 @@ contract GoalVault {
 
     function _deployToStrategy(uint256 amount) internal {
         if (amount == 0) return;
+        if (asset.allowance(address(this), address(strategy)) < amount) return;
         strategy.deposit(amount);
     }
 
@@ -141,5 +163,58 @@ contract GoalVault {
         if (vaultBalance >= amount) return;
         uint256 needed = amount - vaultBalance;
         strategy.withdraw(needed, address(this));
+    }
+
+    function _ensureAssetAssociation() internal {
+        if (assetAssociationChecked) return;
+
+        (bool canCheckAssociation, bool associated) = _tryIsAssociated(address(asset));
+        if (!canCheckAssociation) {
+            (bool associatedViaFallback, int64 fallbackCode) = _tryAssociate(address(asset));
+            if (associatedViaFallback) {
+                require(
+                    fallbackCode == HEDERA_SUCCESS || fallbackCode == HEDERA_TOKEN_ALREADY_ASSOCIATED,
+                    "associate fail"
+                );
+            }
+            assetAssociationChecked = true;
+            return;
+        }
+        if (associated) {
+            assetAssociationChecked = true;
+            return;
+        }
+        int64 responseCode = IHRC(address(asset)).associate();
+        require(
+            responseCode == HEDERA_SUCCESS || responseCode == HEDERA_TOKEN_ALREADY_ASSOCIATED,
+            "associate fail"
+        );
+        assetAssociationChecked = true;
+    }
+
+    function _tryIsAssociated(address token) internal view returns (bool ok, bool associated) {
+        bytes memory data;
+        (ok, data) = token.staticcall(abi.encodeWithSelector(IHRC.isAssociated.selector));
+        if (!ok || data.length < 32) return (false, false);
+        associated = abi.decode(data, (bool));
+        return (true, associated);
+    }
+
+    function _tryAssociate(address token) internal returns (bool ok, int64 responseCode) {
+        bytes memory data;
+        (ok, data) = token.call(abi.encodeWithSelector(IHRC.associate.selector));
+        if (!ok || data.length < 32) return (false, 0);
+        responseCode = abi.decode(data, (int64));
+        return (true, responseCode);
+    }
+
+    function _safeTransferFrom(address from, address to, uint256 amount) internal returns (bool) {
+        (bool ok, bytes memory data) = address(asset).call(
+            abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, amount)
+        );
+        if (!ok) return false;
+        if (data.length == 0) return true;
+        if (data.length >= 32) return abi.decode(data, (bool));
+        return false;
     }
 }

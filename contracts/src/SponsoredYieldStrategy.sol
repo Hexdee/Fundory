@@ -4,6 +4,11 @@ pragma solidity ^0.8.20;
 import {IERC20} from "./interfaces/IERC20.sol";
 import {IYieldStrategy} from "./interfaces/IYieldStrategy.sol";
 
+interface IHRC {
+    function associate() external returns (int64 responseCode);
+    function isAssociated() external view returns (bool);
+}
+
 /// @notice Non-minting yield strategy. Yield is funded by a sponsor (manager)
 /// and accrued over time using aprBps. Safe for real ERC20 assets (testnet/mainnet).
 contract SponsoredYieldStrategy is IYieldStrategy {
@@ -19,6 +24,10 @@ contract SponsoredYieldStrategy is IYieldStrategy {
 
     uint256 public totalPrincipal;
     uint256 public totalAccrued;
+    bool private assetAssociationChecked;
+
+    int64 private constant HEDERA_SUCCESS = 22;
+    int64 private constant HEDERA_TOKEN_ALREADY_ASSOCIATED = 194;
 
     mapping(address => Position) private positions;
 
@@ -53,6 +62,7 @@ contract SponsoredYieldStrategy is IYieldStrategy {
 
     function deposit(uint256 amount) external override {
         require(amount > 0, "amount=0");
+        _ensureAssetAssociation();
         _accrue(msg.sender);
 
         positions[msg.sender].principal += amount;
@@ -90,6 +100,7 @@ contract SponsoredYieldStrategy is IYieldStrategy {
     function sponsorYield(uint256 amount) external {
         require(msg.sender == manager, "only manager");
         require(amount > 0, "amount=0");
+        _ensureAssetAssociation();
         require(asset.transferFrom(msg.sender, address(this), amount), "transferFrom fail");
         emit YieldSponsored(msg.sender, amount);
     }
@@ -143,5 +154,47 @@ contract SponsoredYieldStrategy is IYieldStrategy {
     function _calculateInterest(uint256 principal, uint256 elapsed) internal view returns (uint256) {
         return (principal * aprBps * elapsed) / (365 days * 10000);
     }
-}
 
+    function _ensureAssetAssociation() internal {
+        if (assetAssociationChecked) return;
+
+        (bool canCheckAssociation, bool associated) = _tryIsAssociated(address(asset));
+        if (!canCheckAssociation) {
+            (bool associatedViaFallback, int64 fallbackCode) = _tryAssociate(address(asset));
+            if (associatedViaFallback) {
+                require(
+                    fallbackCode == HEDERA_SUCCESS || fallbackCode == HEDERA_TOKEN_ALREADY_ASSOCIATED,
+                    "associate fail"
+                );
+            }
+            assetAssociationChecked = true;
+            return;
+        }
+        if (associated) {
+            assetAssociationChecked = true;
+            return;
+        }
+        int64 responseCode = IHRC(address(asset)).associate();
+        require(
+            responseCode == HEDERA_SUCCESS || responseCode == HEDERA_TOKEN_ALREADY_ASSOCIATED,
+            "associate fail"
+        );
+        assetAssociationChecked = true;
+    }
+
+    function _tryIsAssociated(address token) internal view returns (bool ok, bool associated) {
+        bytes memory data;
+        (ok, data) = token.staticcall(abi.encodeWithSelector(IHRC.isAssociated.selector));
+        if (!ok || data.length < 32) return (false, false);
+        associated = abi.decode(data, (bool));
+        return (true, associated);
+    }
+
+    function _tryAssociate(address token) internal returns (bool ok, int64 responseCode) {
+        bytes memory data;
+        (ok, data) = token.call(abi.encodeWithSelector(IHRC.associate.selector));
+        if (!ok || data.length < 32) return (false, 0);
+        responseCode = abi.decode(data, (int64));
+        return (true, responseCode);
+    }
+}
