@@ -246,6 +246,9 @@ const erc20Abi = parseAbi([
   "function decimals() view returns (uint8)",
   "function totalSupply() view returns (uint256)",
 ]);
+const factoryReadAbi = parseAbi([
+  "function goalCount() view returns (uint256)",
+]);
 
 const depositGuardAbi = parseAbi([
   "function depositToICHIVaultAndTryWrapToHTS(address vault,address vaultDeployer,address token,uint256 erc20Amount,uint256 minimumProceeds,address to) returns (uint256 vaultTokens)",
@@ -494,6 +497,33 @@ const indexOnce = async () => {
 
   const latestBlock = await client.getBlockNumber();
   const lastBlock = state.lastBlock ? BigInt(state.lastBlock) : 0n;
+
+  // Self-heal when the index has advanced but historical GoalCreated events were skipped.
+  if (Object.keys(state.vaults).length === 0 && lastBlock >= START_BLOCK) {
+    try {
+      const onchainGoalCount = await client.readContract({
+        address: factoryAddress,
+        abi: factoryReadAbi,
+        functionName: "goalCount",
+      });
+      if (onchainGoalCount > 0n) {
+        const rewindTo = START_BLOCK > 0n ? START_BLOCK - 1n : 0n;
+        console.warn("Vault index empty while on-chain goals exist; rewinding indexer", {
+          onchainGoalCount: onchainGoalCount.toString(),
+          previousLastBlock: lastBlock.toString(),
+          rewindTo: rewindTo.toString(),
+        });
+        state.lastBlock = rewindTo.toString();
+        saveState(state);
+        return;
+      }
+    } catch (err) {
+      console.warn(
+        "Backfill check failed; continuing without rewind",
+        err?.shortMessage || err?.message || err
+      );
+    }
+  }
 
   if (lastBlock > latestBlock) {
     console.warn("Detected chain rollback/reset, rewinding indexer state", {
